@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:meals/data/dummy_data.dart';
 import 'package:meals/models/meal.dart';
 import 'package:meals/screens/categories.dart';
 import 'package:meals/screens/filters.dart';
 import 'package:meals/screens/meals.dart';
 import 'package:meals/widgets/main_drawer.dart';
 
+const KInitialFilters = {
+  Filter.glutenFree: false,
+  Filter.lactose: false,
+  Filter.vegetarian: false,
+  Filter.vegan: false,
+};
 class TabsScreen extends StatefulWidget {
   const TabsScreen({super.key});
 
@@ -16,7 +23,8 @@ class TabsScreen extends StatefulWidget {
 
 class _TabsScreenState extends State<TabsScreen>{
   int _selectedPageIndex = 0;
-  
+  Map <Filter, bool> _selectedFilters = KInitialFilters;
+
   final List<Meal> _favoriteMeals = [];
 
   void _showInfoMessage(String message){
@@ -53,26 +61,56 @@ class _TabsScreenState extends State<TabsScreen>{
     });
   }
 
-  void _setScreen(String identifier){
+  void _setScreen(String identifier) {
+    
     Navigator.of(context).pop();
     if(identifier == 'meals'){
       setState(() {
         _selectedPageIndex = 0;
       });
     }
+    
     if(identifier == 'filters'){
-      setState(() {
-        //_selectedPageIndex = 1;
-        Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const FiltersScreen()));
+      
+        Navigator.of(context).push<Map<Filter, bool>>(
+            MaterialPageRoute(
+              builder: (ctx) => FiltersScreen(currentFilters: _selectedFilters)
+            )
+        ).then((result) {
+        
+          setState(() {
+
+            _selectedFilters = result ?? KInitialFilters;
+          
+          });
       });
+
     }
   }
   
   @override
   Widget build(BuildContext context) {
-  
-    Widget activePage =  CategoriesScreens(onToggleFavorite: _toggleFavoriteStatus,);
+    
+    final availableMeals = dummyMeals.where((meal) {
+      if(_selectedFilters[Filter.glutenFree]! && !meal.isGlutenFree){
+        return false;
+      }
+      if(_selectedFilters[Filter.lactose]! && !meal.isLactoseFree){
+        return false;
+      }
+      if(_selectedFilters[Filter.vegetarian]! && !meal.isVegetarian){
+        return false;
+      }
+      if(_selectedFilters[Filter.vegan]! && !meal.isVegan){
+        return false;
+      }
+      return true;
+    }).toList();
+
+    Widget activePage =  CategoriesScreens(onToggleFavorite: _toggleFavoriteStatus,availableMeals: availableMeals,);
+
     var activePageTitle = 'Categories';
+    
     if(_selectedPageIndex == 1){
       activePage = MealsScreen( meals: _favoriteMeals, onToggleFavorite: _toggleFavoriteStatus);
       activePageTitle = 'Your Favorites';
